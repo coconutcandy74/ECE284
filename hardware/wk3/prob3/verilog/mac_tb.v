@@ -30,52 +30,93 @@ function [3:0] w_bin ;
   input integer  weight ;
   begin
 
-    if (weight>-1)
+    if (weight > -1)
      w_bin[3] = 0;
     else begin
      w_bin[3] = 1;
      weight = weight + 8;
     end
-
-    if (weight>3) begin
+    
+    if (weight > 3) begin
      w_bin[2] = 1;
      weight = weight - 4;
-    end
-    else 
+    end 
+    else
      w_bin[2] = 0;
-
-    if (weight>1) begin
+      
+    if (weight > 1) begin
      w_bin[1] = 1;
      weight = weight - 2;
-    end
-    else 
+    end 
+    else
      w_bin[1] = 0;
 
-    if (weight>0) 
+    if (weight > 0)
      w_bin[0] = 1;
-    else 
+    else
      w_bin[0] = 0;
 
   end
 endfunction
 
-
-
 function [3:0] x_bin ;
+  input integer activation;
+  begin
+    if (activation > 7) begin
+     x_bin[3] = 1;
+     activation = activation - 8;
+    end 
+    else
+     x_bin[3] = 0;
 
-...
+    if (activation > 3) begin
+     x_bin[2] = 1;
+     activation = activation - 4;
+    end 
+    else
+     x_bin[2] = 0;
 
+    if (activation > 1) begin
+     x_bin[1] = 1;
+     activation = activation - 2;
+    end 
+    else
+     x_bin[1] = 0;
+
+    if (activation > 0)
+     x_bin[0] = 1;
+    else
+     x_bin[0] = 0;
+  end
 endfunction
 
 
 // Below function is for verification
 function [psum_bw-1:0] mac_predicted;
-  
-...
+  input [bw-1:0] a;
+  input [bw-1:0] b;
+  input [psum_bw-1:0] c;
+    
+  reg signed [bw-1:0] b_extended;
+  reg [bw-1:0] a_extended;
+  reg signed [psum_bw-1:0] product;
+  reg signed [psum_bw-1:0] c_signed;
+    
+  begin
+    if (b[bw-1] == 1'b1) begin
+      b_extended = {{(psum_bw-bw){1'b1}}, b};
+    end else begin
+      b_extended = {{(psum_bw-bw){1'b0}}, b};
+    end
 
+    a_extended = {{(psum_bw-bw){1'b0}},a};
+    
+    c_signed = c;
+    
+    product = b_extended * a_extended;
+    mac_predicted = product + c_signed;
+  end
 endfunction
-
-
 
 mac_wrapper #(.bw(bw), .psum_bw(psum_bw)) mac_wrapper_instance (
 	.clk(clk), 
@@ -93,17 +134,15 @@ initial begin
 
   $dumpfile("mac_tb.vcd");
   $dumpvars(0,mac_tb);
- 
-  #1 clk = 1'b0;  
-  #1 clk = 1'b1;  
+    
+  #1 clk = 1'b0;
+  #1 clk = 1'b1;    
   #1 clk = 1'b0;
 
   $display("-------------------- Computation start --------------------");
   
-
   for (i=0; i<10; i=i+1) begin  // Data lenght is 10 in the data files
-
-     #1 clk = 1'b1;
+     #1 clk = 1'b1;     
      #1 clk = 1'b0;
 
      w_scan_file = $fscanf(w_file, "%d\n", w_dec);
@@ -114,18 +153,15 @@ initial begin
      c = expected_out;
 
      expected_out = mac_predicted(a, b, c);
-
-  end
-
-
-
+  end    
+  
   #1 clk = 1'b1;
   #1 clk = 1'b0;
+
 
   $display("-------------------- Computation completed --------------------");
 
   #10 $finish;
-
 
 end
 

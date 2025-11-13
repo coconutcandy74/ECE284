@@ -14,20 +14,49 @@ module mac_array (clk, reset, out_s, in_w, in_n, inst_w, valid);
   input  [psum_bw*col-1:0] in_n;
   output [col-1:0] valid;
 
-  for (i=1; i < row+1 ; i=i+1) begin : row_num
-      mac_row #(.bw(bw), .psum_bw(psum_bw)) mac_row_instance (
-      ...
-      ...
+  wire [psum_bw*col-1:0] psum [0:row];
+  wire [col-1:0] valid_row [0:row-1];
+  
+  reg [1:0] inst_q [0:row-1];
+  
+  assign psum[0] = in_n;
+  assign out_s = psum[row];
+
+  assign valid = valid_row[row-1];
+
+  genvar r;
+  generate
+    for (r = 0; r < row; r = r + 1) begin : row_num
+      mac_row #(.bw(bw), .psum_bw(psum_bw), .col(col)) mac_row_instance (
+        .clk (clk),
+        .reset (reset),
+
+        .in_w (in_w[bw*(r+1)-1 : bw*r]),
+
+        .in_n (psum[r]),
+        .out_s(psum[r+1]),
+
+        .valid (valid_row[r]),
+
+        .inst_w (inst_q[r])
       );
-  end
 
+    end 
+  endgenerate
+
+
+  integer k;
   always @ (posedge clk) begin
-
-
-   // inst_w flows to row0 to row7
- 
+    if (reset) begin
+      for (k = 0; k < row; k = k+1) begin
+        inst_q[k] <= 2'b00;
+      end
+    end else begin
+      inst_q[0] <= inst_w;
+      for (k = 1; k < row; k = k+1) begin
+        inst_q[k] <= inst_q[k-1];
+      end
+    end
   end
-
-
 
 endmodule
